@@ -127,8 +127,7 @@ def service(port):
     except:
         return "unknown"
     
-# convert an IP address from its dotted-quad format to its
-# 32 binary digit representation
+
 def ip2bin(ip):
     b = ""
     inQuads = ip.split(".")
@@ -142,8 +141,7 @@ def ip2bin(ip):
         outQuads -= 1
     return b
 
-# convert a decimal number to binary representation
-# if d is specified, left-pad the binary number with 0s to that length
+
 def dec2bin(n,d=None):
     s = ""
     while n>0:
@@ -155,10 +153,11 @@ def dec2bin(n,d=None):
     if d is not None:
         while len(s)<d:
             s = "0"+s
-    if s == "": s = "0"
+    if s == "":
+        s = "0"
     return s
 
-# convert a binary string into an IP address
+
 def bin2ip(b):
     ip = ""
     for i in range(0,len(b),8):
@@ -170,22 +169,18 @@ def listCIDR(c):
     parts = c.split("/")
     baseIP = ip2bin(parts[0])
     subnet = int(parts[1])
-    # Python string-slicing weirdness:
-    # "myString"[:-1] -> "myStrin" but "myString"[:0] -> ""
-    # if a subnet of 32 was specified simply print the single IP
+
     if subnet == 32:
         print bin2ip(baseIP)
-    # for any other size subnet, print a list of IP addresses by concatenating
-    # the prefix with each of the suffixes in the subnet
     else:
         ipPrefix = baseIP[:-(32-subnet)]
         for i in range(2**(32-subnet)):
             cidrlist.append(bin2ip(ipPrefix+dec2bin(i, (32-subnet))))
         return cidrlist    
 
-# input validation routine for the CIDR block specified
-def validateCIDRBlock(b):
-    # appropriate format for CIDR block ($prefix/$subnet)
+
+def checkCIDR(b):
+    # AAA.AAA.AAA.BBB/CC
     p = re.compile("^([0-9]{1,3}\.){0,3}[0-9]{1,3}(/[0-9]{1,2}){1}$")
     if not p.match(b):
         print "[!] Error: Invalid CIDR format!"
@@ -196,13 +191,12 @@ def validateCIDRBlock(b):
     quads = prefix.split(".")
     for q in quads:
         if (int(q) < 0) or (int(q) > 255):
-            print "[!] Error: quad "+str(q)+" wrong size."
+            print "[!] Error: quad "+str(q)+" wrong size. 0 ~ 255"
             return False
     # subnet is an appropriate value (1-32)
     if (int(subnet) < 1) or (int(subnet) > 32):
-        print "[!] Error: subnet "+str(subnet)+" wrong size."
+        print "[!] Error: subnet "+str(subnet)+" wrong size. 1 ~ 32"
         return False
-    # passed all checks -> return True
     return True
 
 
@@ -261,9 +255,9 @@ screenLock = threading.Semaphore(value=1)
 if __name__ =='__main__':
     usage="usage: <host> <start_port> <end_port> -p <target port> -t <threads> -S"
     parser = OptionParser(usage=usage)
-    parser.add_option("-t", "--threads", dest="num",help="Max threads, default 50")
-    parser.add_option("-H", "--host", dest="host",help="ip,10.10.10.130 or 10.10.10.0/24")
-    parser.add_option("-p", "--portlist", dest="ports",help="port list, example: 21,22,23,25 ...")
+    parser.add_option("-t", dest="num",help="Max threads, default 50")
+    parser.add_option("-H", dest="host",help="ip,10.10.10.130 or 10.10.10.0/24")
+    parser.add_option("-p", dest="ports",help="port list, example: 21,22,23,25 ...")
     
 # Get parameter
 #t: 10.10.10.0/24 or 10.10.10.130
@@ -292,11 +286,12 @@ if __name__ =='__main__':
         ports_list = [int(port) for port in options.ports.split(',')]     
     ip_list = []
     host = args[0]
+    print host
     try:
         inet_aton(host)
         ip_list.append(host)
     except:        
-        if not validateCIDRBlock(host):
+        if not checkCIDR(host):
             print '[!] Error: IP address not valid!'
             sys.exit()
         else:
@@ -345,11 +340,11 @@ if __name__ =='__main__':
     print '[+] Success: Scanning over'
     for host, ports in result.items():
         try:
-            ip = gethostbyname(host)
+            ip = gethostbyname('host')
         except:
             print "[-] Cannot resolve '%s': Unknown host" % host
         try:
-            name = gethostbyaddr(ip)
+            name = gethostbyaddr('ip')
             print '\n[*] Scan Results for :',name[0], ip, '\n'
         except:
             print '\n[*] Scan Results for :' + ip, '\n'
