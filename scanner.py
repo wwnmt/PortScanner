@@ -228,7 +228,7 @@ def scan_port():
     global open_port
     while 1:
         try:
-            host, port = port_queue.get()
+            host, port = port_queue.get()    
         except Queue.Empty:
             continue
         s = socket(AF_INET, SOCK_STREAM)
@@ -241,10 +241,10 @@ def scan_port():
             s.settimeout(None)
             s.close()        
         if results == 0:
-            open_port.append(port)
+            open_port[host].append(port)
             result[host][port] = 'open'
         elif result == 10035:
-            open_port.append(port)
+            open_port[host].append(port)
             result[host][port] = 'filtered'
         elif result == 10061:
             pass
@@ -253,10 +253,10 @@ def scan_port():
      
 screenLock = threading.Semaphore(value=1)
 if __name__ =='__main__':
-    usage="usage: <host> <start_port> <end_port> -p <target port> -t <threads> -S"
+    usage="usage: <host> <start_port> <end_port> -p <target port> -t <threads> -n"
     parser = OptionParser(usage=usage)
+    parser.add_option("-n", dest="dns",action="store_false", default=True,help="dns parser")
     parser.add_option("-t", dest="num",help="Max threads, default 50")
-    parser.add_option("-H", dest="host",help="ip,10.10.10.130 or 10.10.10.0/24")
     parser.add_option("-p", dest="ports",help="port list, example: 21,22,23,25 ...")
     
 # Get parameter
@@ -320,15 +320,18 @@ if __name__ =='__main__':
     if len(alive_list) == 0:
         print '[!] Warning: all hosts is down'
         exit()
+    else :
+        print '[*] %d hosts alive ' % len(alive_list)
         
     # scanning port
     print '\n\n[*] Testing: Scanning port...'
     port_queue = Queue.Queue()
     result = {}
-    open_port = []
+    open_port = {}
     
     for host in alive_list:
         result[host]={}
+        open_port[host]=[]
         for port in ports_list:
             port_queue.put((host, port))
     for i in range(num):
@@ -338,23 +341,24 @@ if __name__ =='__main__':
     port_queue.join()  
     
     print '[+] Success: Scanning over'
+    end_time = time.time()
+    
     for host, ports in result.items():
-        try:
-            ip = gethostbyname('host')
-        except:
-            print "[-] Cannot resolve '%s': Unknown host" % host
-        try:
-            name = gethostbyaddr('ip')
-            print '\n[*] Scan Results for :',name[0], ip, '\n'
-        except:
-            print '\n[*] Scan Results for :' + ip, '\n'
-        sorted_port_list = sorted(open_port)
+        if not options.dns:
+            try:
+                name = gethostbyaddr(host)
+                print '\n[*] Scan Results for :',name[0], ip, '\n'
+            except:
+                print '\n[*] Scan Results for :' + host
+        else:
+            print '\n[*] Scan Results for :' + host      
+        sorted_port_list = sorted(open_port[host])
         count = len(sorted_port_list)
         print '[*] %d open ports ' % count
         for port in sorted_port_list:
                 print '[+] %d/tcp \t %s \t' % (port, result[host][port]), service(port)
 
-    end_time = time.time()
+    
     print '\n[*] Done: Scanned in', end_time - start_time, 'seconds'
     
 
